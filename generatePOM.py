@@ -1,23 +1,29 @@
 import os
 import numpy as np
 import cv2
+import xml.etree.ElementTree as ET
+from unit_conversion import *
+
+# intrinsic_camera_matrix_filenames = ['intr_CVLab1.xml', 'intr_CVLab2.xml', 'intr_CVLab3.xml', 'intr_CVLab4.xml',
+#                                      'intr_IDIAP1.xml', 'intr_IDIAP2.xml', 'intr_IDIAP3.xml']
+# extrinsic_camera_matrix_filenames = ['extr_CVLab1.xml', 'extr_CVLab2.xml', 'extr_CVLab3.xml', 'extr_CVLab4.xml',
+#                                      'extr_IDIAP1.xml', 'extr_IDIAP2.xml', 'extr_IDIAP3.xml']
 
 
-def cam_pom(intrinsic_fpath, extrinsic_fpath, cfg):
-    fp = cv2.FileStorage(intrinsic_fpath, flags=cv2.FILE_STORAGE_READ)
-    cameraMatrix, distCoeffs = fp.getNode('camera_matrix').mat(), fp.getNode('distortion_coefficients').mat()
-    fp.release()
-    fp = cv2.FileStorage(extrinsic_fpath, flags=cv2.FILE_STORAGE_READ)
-    rvec, tvec = fp.getNode('rvec').mat(), fp.getNode('tvec').mat()
-    fp.release()
+intrinsic_camera_matrix_filenames = ['intr_Camera1.xml', 'intr_Camera2.xml', 'intr_Camera3.xml', 'intr_Camera4.xml',
+                                     'intr_Camera5.xml', 'intr_Camera6.xml']
+extrinsic_camera_matrix_filenames = ['extr_Camera1.xml', 'extr_Camera2.xml', 'extr_Camera3.xml', 'extr_Camera4.xml',
+                                     'extr_Camera5.xml', 'extr_Camera6.xml']
+
+
+def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs, cfg):
     image_width, image_height = cfg['image_width'], cfg['image_height']
     map_width, map_height, grid_ratio = cfg['map_width'], cfg['map_height'], cfg['grid_ratio']
     man_radius, man_height = cfg['man_radius'], cfg['man_height']
     # WILDTRACK has irregular denotion: H*W=480*1440, normally x would be \in [0,1440), not [0,480)
-    # In our data annotation, we follow the regular x \in [0,W), and one can calculate x = posID % W, y = posID // W
-    grid_x, grid_y = np.meshgrid(np.arange(map_width * grid_ratio), np.arange(map_height * grid_ratio))
-    grid_x, grid_y = (grid_x + 0.5) / grid_ratio, (grid_y + 0.5) / grid_ratio
-    centers3d = np.stack([grid_x, grid_y, np.zeros_like(grid_x)], axis=2).reshape([-1, 3])
+    # In our data annotation, we follow the regular x \in [0,W), and one can calculate x = pos % W, y = pos // W
+    coord_x, coord_y = get_worldcoord_from_pos(np.arange(map_width * map_height * grid_ratio * grid_ratio))
+    centers3d = np.stack([coord_x, coord_y, np.zeros_like(coord_y)], axis=1)
     points3d8s = []
     points3d8s.append(centers3d + np.array([man_radius, man_radius, 0]))
     points3d8s.append(centers3d + np.array([-man_radius, man_radius, 0]))
@@ -36,35 +42,76 @@ def cam_pom(intrinsic_fpath, extrinsic_fpath, cfg):
         bbox[:, 2] = np.max([bbox[:, 2], points_img[:, 0]], axis=0)  # xmax
         bbox[:, 3] = np.max([bbox[:, 3], points_img[:, 1]], axis=0)  # xmax
         pass
+    points_img, _ = cv2.projectPoints(centers3d, rvec, tvec, cameraMatrix, distCoeffs)
+    points_img = points_img.squeeze()
+    bbox[:, 3] = points_img[:, 1]
+
     notvisible = np.zeros([centers3d.shape[0]])
     notvisible += (bbox[:, 0] >= image_width) + (bbox[:, 1] >= image_height) + (bbox[:, 2] <= 0) + (bbox[:, 3] <= 0)
     notvisible += bbox[:, 2] - bbox[:, 0] > bbox[:, 3] - bbox[:, 1]  # w > h
     notvisible += bbox[:, 2] - bbox[:, 0] > image_width / 3
-    return bbox.astype(int), notvisible
+    return bbox.astype(int), notvisible.astype(bool)
 
 
-if __name__ == '__main__':
+def test():
     cam_num = 6
     cfg = {'image_width': 1920,
            'image_height': 1080,
            'map_width': 25,
            'map_height': 15,
-           'grid_ratio': 10,
+           'grid_ratio': 40,
            'man_radius': 0.16,
            'man_height': 1.8, }
-    fpath = 'multiviewX/rectangles.pom'
+    fpath = 'rectangles.pom'
     if os.path.exists(fpath):
         os.remove(fpath)
     fp = open(fpath, 'w')
+    errors = []
     for cam in range(cam_num):
-        bbox, notvisible = cam_pom(f'intrinsic/intr_Camera{cam + 1}.xml',
-                                   f'extrinsic/extr_Camera{cam + 1}.xml', cfg)
-        for posID in range(len(notvisible)):
-            if notvisible[posID]:
-                fp.write(f'RECTANGLE {cam} {posID} notvisible\n')
+
+        fp_calibration = cv2.FileStorage(f'intrinsic/{intrinsic_camera_matrix_filenames[cam]}',
+                                         flags=cv2.FILE_STORAGE_READ)
+        cameraMatrix, distCoeffs = fp_calibration.getNode('camera_matrix').mat(), fp_calibration.getNode(
+            'distortion_coefficients').mat()
+        fp_calibration.release()
+        fp_calibration = cv2.FileStorage(f'extrinsic/{extrinsic_camera_matrix_filenames[cam]}',
+                                         flags=cv2.FILE_STORAGE_READ)
+        rvec, tvec = fp_calibration.getNode('rvec').mat().squeeze(), fp_calibration.getNode('tvec').mat().squeeze()
+        fp_calibration.release()
+
+        # extrinsic_params_file_root = ET.parse(f'extrinsic/{extrinsic_camera_matrix_filenames[cam]}').getroot()
+        #
+        # rvec = extrinsic_params_file_root.findall('rvec')[0].text.lstrip().rstrip().split(' ')
+        # rvec = np.array(list(map(lambda x: float(x), rvec)), dtype=np.float32)
+        #
+        # tvec = extrinsic_params_file_root.findall('tvec')[0].text.lstrip().rstrip().split(' ')
+        # tvec = np.array(list(map(lambda x: float(x), tvec)), dtype=np.float32)
+
+        bbox, notvisible = generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs, cfg)  # xmin,ymin,xmax,ymax
+
+        for pos in range(len(notvisible)):
+            if notvisible[pos]:
+                fp.write(f'RECTANGLE {cam} {pos} notvisible\n')
             else:
-                fp.write(f'RECTANGLE {cam} {posID} '
-                         f'{bbox[posID, 0]} {bbox[posID, 1]} {bbox[posID, 2]} {bbox[posID, 3]}\n')
-        pass
+                fp.write(f'RECTANGLE {cam} {pos} '
+                         f'{bbox[pos, 0]} {bbox[pos, 1]} {bbox[pos, 2]} {bbox[pos, 3]}\n')
+
+        foot_3d = get_worldcoord_from_pos(np.arange(len(notvisible)))
+        foot_3d = np.concatenate([foot_3d, np.zeros([1, len(notvisible)])], axis=0).transpose()[
+                  (1 - notvisible).astype(bool), :].reshape([1, -1, 3])
+        projected_foot_2d, _ = cv2.projectPoints(foot_3d, rvec, tvec, cameraMatrix, distCoeffs)
+        projected_foot_2d = projected_foot_2d.squeeze()
+        foot_2d = np.array([(bbox[:, 0] + bbox[:, 2]) / 2, bbox[:, 3]]).transpose()[(1 - notvisible).astype(bool), :]
+        projected_foot_2d = np.maximum(projected_foot_2d, 0)
+        projected_foot_2d = np.minimum(projected_foot_2d, [1920, 1080])
+        foot_2d = np.maximum(foot_2d, 0)
+        foot_2d = np.minimum(foot_2d, [1920, 1080])
+        errors.append(np.linalg.norm(projected_foot_2d - foot_2d, axis=1))
+    errors = np.concatenate(errors)
+    print(f'average error in image pixels: {np.average(errors)}')
     fp.close()
     pass
+
+
+if __name__ == '__main__':
+    test()
