@@ -1,14 +1,6 @@
 import os
-import numpy as np
 import cv2
-import xml.etree.ElementTree as ET
 from unit_conversion import *
-
-# intrinsic_camera_matrix_filenames = ['intr_CVLab1.xml', 'intr_CVLab2.xml', 'intr_CVLab3.xml', 'intr_CVLab4.xml',
-#                                      'intr_IDIAP1.xml', 'intr_IDIAP2.xml', 'intr_IDIAP3.xml']
-# extrinsic_camera_matrix_filenames = ['extr_CVLab1.xml', 'extr_CVLab2.xml', 'extr_CVLab3.xml', 'extr_CVLab4.xml',
-#                                      'extr_IDIAP1.xml', 'extr_IDIAP2.xml', 'extr_IDIAP3.xml']
-
 
 intrinsic_camera_matrix_filenames = ['intr_Camera1.xml', 'intr_Camera2.xml', 'intr_Camera3.xml', 'intr_Camera4.xml',
                                      'intr_Camera5.xml', 'intr_Camera6.xml']
@@ -45,7 +37,9 @@ def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs, cfg):
     points_img, _ = cv2.projectPoints(centers3d, rvec, tvec, cameraMatrix, distCoeffs)
     points_img = points_img.squeeze()
     bbox[:, 3] = points_img[:, 1]
-
+    # offset = points_img[:, 0] - (bbox[:, 0] + bbox[:, 2]) / 2
+    # bbox[:, 0] += offset
+    # bbox[:, 2] += offset
     notvisible = np.zeros([centers3d.shape[0]])
     notvisible += (bbox[:, 0] >= image_width) + (bbox[:, 1] >= image_height) + (bbox[:, 2] <= 0) + (bbox[:, 3] <= 0)
     notvisible += bbox[:, 2] - bbox[:, 0] > bbox[:, 3] - bbox[:, 1]  # w > h
@@ -68,24 +62,15 @@ def test():
     fp = open(fpath, 'w')
     errors = []
     for cam in range(cam_num):
-
-        fp_calibration = cv2.FileStorage(f'intrinsic/{intrinsic_camera_matrix_filenames[cam]}',
+        fp_calibration = cv2.FileStorage(f'calibrations/intrinsic/{intrinsic_camera_matrix_filenames[cam]}',
                                          flags=cv2.FILE_STORAGE_READ)
         cameraMatrix, distCoeffs = fp_calibration.getNode('camera_matrix').mat(), fp_calibration.getNode(
             'distortion_coefficients').mat()
         fp_calibration.release()
-        fp_calibration = cv2.FileStorage(f'extrinsic/{extrinsic_camera_matrix_filenames[cam]}',
+        fp_calibration = cv2.FileStorage(f'calibrations/extrinsic/{extrinsic_camera_matrix_filenames[cam]}',
                                          flags=cv2.FILE_STORAGE_READ)
         rvec, tvec = fp_calibration.getNode('rvec').mat().squeeze(), fp_calibration.getNode('tvec').mat().squeeze()
         fp_calibration.release()
-
-        # extrinsic_params_file_root = ET.parse(f'extrinsic/{extrinsic_camera_matrix_filenames[cam]}').getroot()
-        #
-        # rvec = extrinsic_params_file_root.findall('rvec')[0].text.lstrip().rstrip().split(' ')
-        # rvec = np.array(list(map(lambda x: float(x), rvec)), dtype=np.float32)
-        #
-        # tvec = extrinsic_params_file_root.findall('tvec')[0].text.lstrip().rstrip().split(' ')
-        # tvec = np.array(list(map(lambda x: float(x), tvec)), dtype=np.float32)
 
         bbox, notvisible = generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs, cfg)  # xmin,ymin,xmax,ymax
 
