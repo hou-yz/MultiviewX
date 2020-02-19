@@ -1,28 +1,29 @@
+from datasetParameters import *
 import numpy as np
 
 
 def get_worldgrid_from_pos(pos):
-    grid_x = pos % (25 * 40)
-    grid_y = pos // (25 * 40)
+    grid_x = pos % (MAP_WIDTH * MAP_EXPAND)
+    grid_y = pos // (MAP_WIDTH * MAP_EXPAND)
     return np.array([grid_x, grid_y], dtype=int)
 
 
 def get_pos_from_worldgrid(worldgrid):
     grid_x, grid_y = worldgrid
-    return grid_x + grid_y * 25 * 40
+    return grid_x + grid_y * MAP_WIDTH * MAP_EXPAND
 
 
 def get_worldgrid_from_worldcoord(world_coord):
     coord_x, coord_y = world_coord
-    grid_x = coord_x * 40
-    grid_y = coord_y * 40
+    grid_x = coord_x * MAP_EXPAND
+    grid_y = coord_y * MAP_EXPAND
     return np.array([grid_x, grid_y]).round()
 
 
 def get_worldcoord_from_worldgrid(worldgrid):
     grid_x, grid_y = worldgrid
-    coord_x = grid_x / 40
-    coord_y = grid_y / 40
+    coord_x = grid_x / MAP_EXPAND
+    coord_y = grid_y / MAP_EXPAND
     return np.array([coord_x, coord_y])
 
 

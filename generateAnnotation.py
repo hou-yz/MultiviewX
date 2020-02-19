@@ -1,7 +1,10 @@
 import os
 import re
 import json
-from unit_conversion import *
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+from PIL import Image
+from unitConversion import *
 
 
 def read_pom(fpath):
@@ -24,8 +27,10 @@ def read_pom(fpath):
 
 def read_gt(cam):
     gt_3d = np.loadtxt(f'matchings/Camera{cam + 1}_3d.txt')
+    gt_3d = gt_3d[np.where(np.logical_and(gt_3d[:, -3] >= 0, gt_3d[:, -3] <= 25))[0], :]
+    gt_3d = gt_3d[np.where(np.logical_and(gt_3d[:, -2] >= 0, gt_3d[:, -2] <= 15))[0], :]
     frame, pid = gt_3d[:, 0], gt_3d[:, 1]
-    foot_3d_coord = gt_3d[:, 5:7].transpose()
+    foot_3d_coord = gt_3d[:, -3:-1].transpose()
     pos = get_pos_from_worldcoord(foot_3d_coord)
     return np.stack([frame, pid, pos], axis=1).astype(int)
 
@@ -40,15 +45,15 @@ def create_pid_annotation(pid, pos, bbox_by_pos_cam):
     return person_annotation
 
 
-def test():
-    num_cam = 6
+def annotate():
     bbox_by_pos_cam = read_pom('rectangles.pom')
     gts = []
-    for cam in range(num_cam):
+    for cam in range(NUM_CAM):
         gt = read_gt(cam)
         gts.append(gt)
     gts = np.concatenate(gts, axis=0)
     gts = np.unique(gts, axis=0)
+    print(f'average persons per frame: {gts.shape[0] / len(np.unique(gts[:, 0]))}')
     pids_dict = {}
     os.makedirs('annotations_positions', exist_ok=True)
     for frame in np.unique(gts[:, 0]):
@@ -61,9 +66,30 @@ def test():
             annotations.append(create_pid_annotation(pids_dict[pid], pos, bbox_by_pos_cam))
         with open('annotations_positions/{:05d}.json'.format(frame), 'w') as fp:
             json.dump(annotations, fp, indent=4)
+        if frame == 1:
+            for cam in range(NUM_CAM):
+                img = Image.open(f'Image_subsets/C{cam + 1}/0000.jpg')
+
+                # Create figure and axes
+                fig, ax = plt.subplots(1)
+                # Display the image
+                ax.imshow(img)
+                for anno in annotations:
+                    anno = anno['views'][cam]
+                    bbox = np.array([anno['xmin'], anno['ymin'], anno['xmax'], anno['ymax']])
+                    if bbox[0] == -1 and bbox[1] == -1:
+                        continue
+                    bbox[2:] = bbox[2:] - bbox[:2]  # xywh
+
+                    # Create a Rectangle patch
+                    rect = patches.Rectangle(bbox[:2], bbox[2], bbox[3], linewidth=1, edgecolor='g', facecolor='none')
+                    # Add the patch to the Axes
+                    ax.add_patch(rect)
+                plt.show()
+                pass
 
     pass
 
 
 if __name__ == '__main__':
-    test()
+    annotate()

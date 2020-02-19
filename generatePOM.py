@@ -1,6 +1,7 @@
 import os
 import cv2
-from unit_conversion import *
+from datasetParameters import *
+from unitConversion import *
 
 intrinsic_camera_matrix_filenames = ['intr_Camera1.xml', 'intr_Camera2.xml', 'intr_Camera3.xml', 'intr_Camera4.xml',
                                      'intr_Camera5.xml', 'intr_Camera6.xml']
@@ -8,24 +9,21 @@ extrinsic_camera_matrix_filenames = ['extr_Camera1.xml', 'extr_Camera2.xml', 'ex
                                      'extr_Camera5.xml', 'extr_Camera6.xml']
 
 
-def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs, cfg):
-    image_width, image_height = cfg['image_width'], cfg['image_height']
-    map_width, map_height, grid_ratio = cfg['map_width'], cfg['map_height'], cfg['grid_ratio']
-    man_radius, man_height = cfg['man_radius'], cfg['man_height']
+def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs):
     # WILDTRACK has irregular denotion: H*W=480*1440, normally x would be \in [0,1440), not [0,480)
     # In our data annotation, we follow the regular x \in [0,W), and one can calculate x = pos % W, y = pos // W
-    coord_x, coord_y = get_worldcoord_from_pos(np.arange(map_width * map_height * grid_ratio * grid_ratio))
+    coord_x, coord_y = get_worldcoord_from_pos(np.arange(MAP_HEIGHT * MAP_WIDTH * MAP_EXPAND * MAP_EXPAND))
     centers3d = np.stack([coord_x, coord_y, np.zeros_like(coord_y)], axis=1)
     points3d8s = []
-    points3d8s.append(centers3d + np.array([man_radius, man_radius, 0]))
-    points3d8s.append(centers3d + np.array([-man_radius, man_radius, 0]))
-    points3d8s.append(centers3d + np.array([man_radius, -man_radius, 0]))
-    points3d8s.append(centers3d + np.array([-man_radius, -man_radius, 0]))
-    points3d8s.append(centers3d + np.array([man_radius, man_radius, man_height]))
-    points3d8s.append(centers3d + np.array([-man_radius, man_radius, man_height]))
-    points3d8s.append(centers3d + np.array([man_radius, -man_radius, man_height]))
-    points3d8s.append(centers3d + np.array([-man_radius, -man_radius, man_height]))
-    bbox = np.ones([centers3d.shape[0], 4]) * np.array([image_width, image_height, 0, 0])  # xmin,ymin,xmax,ymax
+    points3d8s.append(centers3d + np.array([MAN_RADIUS, MAN_RADIUS, 0]))
+    points3d8s.append(centers3d + np.array([-MAN_RADIUS, MAN_RADIUS, 0]))
+    points3d8s.append(centers3d + np.array([MAN_RADIUS, -MAN_RADIUS, 0]))
+    points3d8s.append(centers3d + np.array([-MAN_RADIUS, -MAN_RADIUS, 0]))
+    points3d8s.append(centers3d + np.array([MAN_RADIUS, MAN_RADIUS, MAN_HEIGHT]))
+    points3d8s.append(centers3d + np.array([-MAN_RADIUS, MAN_RADIUS, MAN_HEIGHT]))
+    points3d8s.append(centers3d + np.array([MAN_RADIUS, -MAN_RADIUS, MAN_HEIGHT]))
+    points3d8s.append(centers3d + np.array([-MAN_RADIUS, -MAN_RADIUS, MAN_HEIGHT]))
+    bbox = np.ones([centers3d.shape[0], 4]) * np.array([IMAGE_WIDTH, IMAGE_HEIGHT, 0, 0])  # xmin,ymin,xmax,ymax
     for i in range(8):  # for all 8 points
         points_img, _ = cv2.projectPoints(points3d8s[i], rvec, tvec, cameraMatrix, distCoeffs)
         points_img = points_img.squeeze()
@@ -41,27 +39,20 @@ def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs, cfg):
     # bbox[:, 0] += offset
     # bbox[:, 2] += offset
     notvisible = np.zeros([centers3d.shape[0]])
-    notvisible += (bbox[:, 0] >= image_width) + (bbox[:, 1] >= image_height) + (bbox[:, 2] <= 0) + (bbox[:, 3] <= 0)
+    notvisible += (bbox[:, 0] >= IMAGE_WIDTH - 2) + (bbox[:, 1] >= IMAGE_HEIGHT - 2) + \
+                  (bbox[:, 2] <= 1) + (bbox[:, 3] <= 1)
     notvisible += bbox[:, 2] - bbox[:, 0] > bbox[:, 3] - bbox[:, 1]  # w > h
-    notvisible += bbox[:, 2] - bbox[:, 0] > image_width / 3
+    notvisible += (bbox[:, 2] - bbox[:, 0] > IMAGE_WIDTH / 3) + (bbox[:, 3] - bbox[:, 1] > IMAGE_HEIGHT / 3)
     return bbox.astype(int), notvisible.astype(bool)
 
 
-def test():
-    cam_num = 6
-    cfg = {'image_width': 1920,
-           'image_height': 1080,
-           'map_width': 25,
-           'map_height': 15,
-           'grid_ratio': 40,
-           'man_radius': 0.16,
-           'man_height': 1.8, }
+def generate_POM():
     fpath = 'rectangles.pom'
     if os.path.exists(fpath):
         os.remove(fpath)
     fp = open(fpath, 'w')
     errors = []
-    for cam in range(cam_num):
+    for cam in range(NUM_CAM):
         fp_calibration = cv2.FileStorage(f'calibrations/intrinsic/{intrinsic_camera_matrix_filenames[cam]}',
                                          flags=cv2.FILE_STORAGE_READ)
         cameraMatrix, distCoeffs = fp_calibration.getNode('camera_matrix').mat(), fp_calibration.getNode(
@@ -72,7 +63,7 @@ def test():
         rvec, tvec = fp_calibration.getNode('rvec').mat().squeeze(), fp_calibration.getNode('tvec').mat().squeeze()
         fp_calibration.release()
 
-        bbox, notvisible = generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs, cfg)  # xmin,ymin,xmax,ymax
+        bbox, notvisible = generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs)  # xmin,ymin,xmax,ymax
 
         for pos in range(len(notvisible)):
             if notvisible[pos]:
@@ -88,9 +79,9 @@ def test():
         projected_foot_2d = projected_foot_2d.squeeze()
         foot_2d = np.array([(bbox[:, 0] + bbox[:, 2]) / 2, bbox[:, 3]]).transpose()[(1 - notvisible).astype(bool), :]
         projected_foot_2d = np.maximum(projected_foot_2d, 0)
-        projected_foot_2d = np.minimum(projected_foot_2d, [1920, 1080])
+        projected_foot_2d = np.minimum(projected_foot_2d, [IMAGE_WIDTH, IMAGE_HEIGHT])
         foot_2d = np.maximum(foot_2d, 0)
-        foot_2d = np.minimum(foot_2d, [1920, 1080])
+        foot_2d = np.minimum(foot_2d, [IMAGE_WIDTH, IMAGE_HEIGHT])
         errors.append(np.linalg.norm(projected_foot_2d - foot_2d, axis=1))
     errors = np.concatenate(errors)
     print(f'average error in image pixels: {np.average(errors)}')
@@ -99,4 +90,4 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
+    generate_POM()
