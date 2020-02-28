@@ -11,12 +11,12 @@ def calibrate():
     for cam in range(NUM_CAM):
         points_2d = np.loadtxt(f'matchings/Camera{cam + 1}.txt')
         points_3d = np.loadtxt(f'matchings/Camera{cam + 1}_3d.txt')
-        points_2d = points_2d[points_2d[:, 0] == 1, :]
-        points_3d = points_3d[points_3d[:, 0] == 1, :]
+        points_2d = points_2d[points_2d[:, 0] == 0, :]
+        points_3d = points_3d[points_3d[:, 0] == 0, :]
 
 
-        visualize_foot_image = points_2d[points_2d[:, 0] == 1, -2:]
-        image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.jpg')
+        visualize_foot_image = points_2d[points_2d[:, 0] == 0, -2:]
+        image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.png')
         for point in visualize_foot_image:
             cv2.circle(image, tuple(point.astype(int)), 20, (0, 255, 0), -1)
         plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))

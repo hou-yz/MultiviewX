@@ -2,7 +2,7 @@ import os
 import re
 import json
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
+import cv2
 from PIL import Image
 from unitConversion import *
 
@@ -66,25 +66,19 @@ def annotate():
             annotations.append(create_pid_annotation(pids_dict[pid], pos, bbox_by_pos_cam))
         with open('annotations_positions/{:05d}.json'.format(frame), 'w') as fp:
             json.dump(annotations, fp, indent=4)
-        if frame == 1:
+        if frame == 0:
             for cam in range(NUM_CAM):
-                img = Image.open(f'Image_subsets/C{cam + 1}/0000.jpg')
-
-                # Create figure and axes
-                fig, ax = plt.subplots(1)
-                # Display the image
-                ax.imshow(img)
+                img = Image.open(f'Image_subsets/C{cam + 1}/0000.png')
+                img = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
                 for anno in annotations:
                     anno = anno['views'][cam]
-                    bbox = np.array([anno['xmin'], anno['ymin'], anno['xmax'], anno['ymax']])
+                    bbox = tuple([anno['xmin'], anno['ymin'], anno['xmax'], anno['ymax']])
                     if bbox[0] == -1 and bbox[1] == -1:
                         continue
-                    bbox[2:] = bbox[2:] - bbox[:2]  # xywh
-
-                    # Create a Rectangle patch
-                    rect = patches.Rectangle(bbox[:2], bbox[2], bbox[3], linewidth=1, edgecolor='g', facecolor='none')
-                    # Add the patch to the Axes
-                    ax.add_patch(rect)
+                    cv2.rectangle(img, bbox[:2], bbox[2:], (0, 255, 0), 2)
+                img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                img.save(f'bbox_cam{cam + 1}.png')
+                plt.imshow(img)
                 plt.show()
                 pass
 
