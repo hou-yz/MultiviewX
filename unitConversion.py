@@ -17,7 +17,7 @@ def get_worldgrid_from_worldcoord(world_coord):
     coord_x, coord_y = world_coord
     grid_x = coord_x * MAP_EXPAND
     grid_y = coord_y * MAP_EXPAND
-    return np.array([grid_x, grid_y]).round()
+    return np.array([grid_x, grid_y], dtype=int)
 
 
 def get_worldcoord_from_worldgrid(worldgrid):

@@ -27,8 +27,8 @@ def read_pom(fpath):
 
 def read_gt(cam):
     gt_3d = np.loadtxt(f'matchings/Camera{cam + 1}_3d.txt')
-    gt_3d = gt_3d[np.where(np.logical_and(gt_3d[:, -3] >= 0, gt_3d[:, -3] <= 25))[0], :]
-    gt_3d = gt_3d[np.where(np.logical_and(gt_3d[:, -2] >= 0, gt_3d[:, -2] <= 15))[0], :]
+    gt_3d = gt_3d[np.where(np.logical_and(gt_3d[:, -3] >= 0, gt_3d[:, -3] <= MAP_WIDTH))[0], :]
+    gt_3d = gt_3d[np.where(np.logical_and(gt_3d[:, -2] >= 0, gt_3d[:, -2] <= MAP_HEIGHT))[0], :]
     frame, pid = gt_3d[:, 0], gt_3d[:, 1]
     foot_3d_coord = gt_3d[:, -3:-1].transpose()
     pos = get_pos_from_worldcoord(foot_3d_coord)

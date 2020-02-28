@@ -11,6 +11,10 @@ def calibrate():
     for cam in range(NUM_CAM):
         points_2d = np.loadtxt(f'matchings/Camera{cam + 1}.txt')
         points_3d = np.loadtxt(f'matchings/Camera{cam + 1}_3d.txt')
+        points_2d = points_2d[points_2d[:, 0] == 1, :]
+        points_3d = points_3d[points_3d[:, 0] == 1, :]
+
+
         visualize_foot_image = points_2d[points_2d[:, 0] == 1, -2:]
         image = cv2.imread(f'Image_subsets/C{cam + 1}/0000.jpg')
         for point in visualize_foot_image:

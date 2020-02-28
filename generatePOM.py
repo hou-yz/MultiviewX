@@ -42,7 +42,7 @@ def generate_cam_pom(rvec, tvec, cameraMatrix, distCoeffs):
     notvisible += (bbox[:, 0] >= IMAGE_WIDTH - 2) + (bbox[:, 1] >= IMAGE_HEIGHT - 2) + \
                   (bbox[:, 2] <= 1) + (bbox[:, 3] <= 1)
     notvisible += bbox[:, 2] - bbox[:, 0] > bbox[:, 3] - bbox[:, 1]  # w > h
-    notvisible += (bbox[:, 2] - bbox[:, 0] > IMAGE_WIDTH / 3) + (bbox[:, 3] - bbox[:, 1] > IMAGE_HEIGHT / 3)
+    notvisible += (bbox[:, 2] - bbox[:, 0] > IMAGE_WIDTH / 3)  # + (bbox[:, 3] - bbox[:, 1] > IMAGE_HEIGHT / 3)
     return bbox.astype(int), notvisible.astype(bool)
 
 
