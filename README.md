@@ -28,7 +28,7 @@ Please refer to this [link](https://1drv.ms/u/s!AtzsQybTubHfgP9BJt2g7R_Ku4X3Pg?e
 This repo includes the toolkits and utilities for bulding MultiviewX dataset.
  
 How to's
-- copy the 2d/3d simulation annotations into `/matchings`.
+- download (from [link](https://anu365-my.sharepoint.com/:u:/g/personal/u6852178_anu_edu_au/EZ9hISq6FxBItIsdIDkapmUBGIK7Fn9LVIAuUT8NltKDBw?e=atMYbI)) and copy the 2d/3d bbox annotations into `/matchings`.
 - run the following command.
 ```shell script
 python run_all.py
