@@ -11,24 +11,24 @@
 
 ## Overview
 
-The MultiviewX dataset dedicates to multiview synthetic pedestrian detection. Using pedestrian models from [PersonX](https://github.com/sxzrt/Dissecting-Person-Re-ID-from-the-Viewpoint-of-Viewpoint), in Unity, we build a novel synthetic dataset MultiviewX. It follows the [WILDTRACK dataset](https://www.epfl.ch/labs/cvlab/data/data-wildtrack/) for set-up, annotation, and structure. 
+The MultiviewX dataset is dedicated to multiview synthetic pedestrian detection. Using pedestrian models from [PersonX](https://github.com/sxzrt/Dissecting-Person-Re-ID-from-the-Viewpoint-of-Viewpoint), in Unity, we build a novel synthetic dataset MultiviewX. It follows the [WILDTRACK dataset](https://www.epfl.ch/labs/cvlab/data/data-wildtrack/) for set-up, annotation, and structure. 
 
 ![alt text](https://hou-yz.github.io/images/eccv2020_mvdet_multiviewx_dataset.jpg "Visualization of MultiviewX dataset")
 
-The MultiviewX dataset is generated on a 25 meter by 16 meter playground. It has 6 cameras that has overlapping field-of-view. The images in MultiviewX dataset are of high resolution, 1920x1080, and are synchronized. To fully exploit the complementary views, calibrations are also provided in MultiviewX dataset. 
+The MultiviewX dataset is generated on a 25 meter by 16 meter playground. It has 6 cameras that have overlapping field-of-view. The images in MultiviewX dataset are of high resolution, 1920x1080, and are synchronized. To fully exploit the complementary views, calibrations are also provided in MultiviewX dataset. 
 
 ![alt text](https://hou-yz.github.io/images/eccv2020_mvdet_multiviewx_demo.gif "Detection results on MultiviewX dataset using MVDet")
 
 
 ## Downloads
-Please refer to this [link](https://1drv.ms/u/s!AtzsQybTubHf_0Em3aDtH8q7hfc-?e=btxNVT) for download.
+Please refer to this [link](https://1drv.ms/u/s!AtzsQybTubHf_0Em3aDtH8q7hfc-?e=B3vMww) for download.
 
 ## Toolkits for MultiviewX dataset.
 
-This repo includes the toolkits and utilities for bulding MultiviewX dataset.
+This repo includes the toolkits and utilities for building MultiviewX dataset.
  
 How to's
-- download (from [link](https://anu365-my.sharepoint.com/:u:/g/personal/u6852178_anu_edu_au/EZ9hISq6FxBItIsdIDkapmUBGIK7Fn9LVIAuUT8NltKDBw?e=atMYbI)) and copy the 2d/3d bbox annotations into `/matchings`.
+- download (from [link](https://1drv.ms/u/s!AtzsQybTubHf_0Em3aDtH8q7hfc-?e=B3vMww)) and copy the 2d/3d bbox annotations into `/matchings`.
 - run the following command.
 ```shell script
 python run_all.py
@@ -37,7 +37,7 @@ python run_all.py
 
 ## Evaluation
 
-For multiview pedestiran detection, MultiviewX follows the same evaluation scheme as Wildtrack with MODA, MODP, precission, and recall. Evaluation toolkit can be found [here](https://github.com/hou-yz/MVDet/tree/master/multiview_detector/evaluation). 
+For multiview pedestrian detection, MultiviewX follows the same evaluation scheme as Wildtrack with MODA, MODP, precission, and recall. Evaluation toolkit can be found [here](https://github.com/hou-yz/MVDet/tree/master/multiview_detector/evaluation). 
 
 ## Leaderboards
 
