@@ -21,14 +21,14 @@ The MultiviewX dataset is generated on a 25 meter by 16 meter playground. It has
 
 
 ## Downloads
-Please refer to this [link](https://1drv.ms/u/s!AtzsQybTubHf_0Em3aDtH8q7hfc-?e=B3vMww) for download.
+Please refer to this [link](https://1drv.ms/u/s!AtzsQybTubHfhYZ9Ghhahbp20OX9kA?e=Hm9Xdg) for download.
 
 ## Toolkits for MultiviewX dataset.
 
 This repo includes the toolkits and utilities for building MultiviewX dataset.
  
 How to's
-- download (from [link](https://1drv.ms/u/s!AtzsQybTubHf_0Em3aDtH8q7hfc-?e=B3vMww)) and copy the 2d/3d bbox annotations into `/matchings`.
+- download (from [link](https://1drv.ms/u/s!AtzsQybTubHfhYZ9Ghhahbp20OX9kA?e=Hm9Xdg)) and copy the 2d/3d bbox annotations into `/matchings`.
 - run the following command.
 ```shell script
 python run_all.py
